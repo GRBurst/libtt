@@ -24,8 +24,8 @@ case class MyMatch(
 
 // Use Options in fields where no information is possible
 case class Player(
-  playerId: Int,
-  rank: Rank,
+  id: Int,
+  vRank: Rank,
   dRank: Rank,
   name: String,
   club: String,

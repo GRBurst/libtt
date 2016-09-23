@@ -11,7 +11,6 @@ class EventDetailParserSpec extends org.specs2.mutable.Specification {
 
     val edp = EventDetailParser("src/test/res/eventDetails.htm")
     val lm = edp.get
-    // lm(0) mustEqual Match("Mustermann1, Max1", 2000, 2000100, "3:0", "11:5", "11:6", "11:7", " ", " ", " ", " ", 0.511f )
     lm(0).opponent mustEqual "Mustermann1, Max1"
     lm(0).oTTR.get mustEqual 2000
     lm(0).oId mustEqual 2000100
@@ -24,6 +23,8 @@ class EventDetailParserSpec extends org.specs2.mutable.Specification {
     lm(0).set6 mustEqual None
     lm(0).set7 mustEqual None
     lm(0).ge mustEqual 0.511f
+
+    lm(0) mustEqual MyMatch("Mustermann1, Max1", Some(2000), 2000100, "3:0", "11:5", "11:6", "11:7", None, None, None, None, 0.511f )
 
   }
 
