@@ -1,5 +1,11 @@
 package com.grburst.libtt
 
+case class Club(
+  id: Int,
+  name: String,
+  organisation: String,
+  orgaId: Int)
+
 case class Match(
   opponent: String,
   oTTR: Int,
@@ -14,6 +20,7 @@ case class Match(
   set7: String,
   ge: Float)
 
+// Use Options in fields where no information is possible
 case class Player(
   playerId: Int,
   rank: String,
