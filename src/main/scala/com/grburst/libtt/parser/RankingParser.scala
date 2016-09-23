@@ -1,6 +1,7 @@
 package com.grburst.libtt.parser
 
 import com.grburst.libtt.Player
+import com.grburst.libtt.util.types._
 import com.grburst.libtt.util.parsingHelper.StringHelper
 
 import spray.http.Uri
@@ -23,9 +24,10 @@ case class RankingParser(url: String = "/storage/emulated/0/mytischtennis.de/myc
     val ttrData: List[Option[Player]] = ttrTable.map(x => (x >> elementList("td")).toList match {
       case List(r, d, n, c, t, s) => {
         val pId: Array[String] = (n >> attr("data-tooltipdata")("a")).split(";")
+        val vr: Rank = r.text.split("/")(0).trim.toIntOption
         val uri = Uri(c >> attr("href")("a"));
 
-        Some(Player(pId(0).toInt, r.text, d.text.toIntOption.getOrElse(-1), pId(2), c.text, uri.query.get("clubid").get.toInt, t.text.toIntOption.getOrElse(-1)))
+        Some(Player(pId(0).toInt, vr, d.text.toIntOption, pId(2), c.text, uri.query.get("clubid").get.toInt, t.text.toIntOption))
       }
       case _ => None
     })

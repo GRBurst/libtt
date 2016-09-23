@@ -20,21 +20,21 @@ case class SearchParser(url: String = "/storage/emulated/0/mytischtennis.de/mycl
   val browser = JsoupBrowser()
   val eventDoc = browser.parseFile(url)
 
-  val get: Future[List[Player]] = Future {
+  // val get: Future[List[Player]] = Future {
 
-    val ttrTable = eventDoc >> element(".table-mytt") >> elementList("tr")
-    val ttrData: List[Option[Player]] = ttrTable.map(x => (x >> elementList("td")).toList match {
-      case List(r, d, n, c, t, s) => {
-        val pId: Array[String] = (n >> attr("data-tooltipdata")("a")).split(";")
-        val uri = Uri(c >> attr("href")("a"));
+  //   val ttrTable = eventDoc >> element(".table-mytt") >> elementList("tr")
+  //   val ttrData: List[Option[Player]] = ttrTable.map(x => (x >> elementList("td")).toList match {
+  //     case List(r, d, n, c, t, s) => {
+  //       val pId: Array[String] = (n >> attr("data-tooltipdata")("a")).split(";")
+  //       val uri = Uri(c >> attr("href")("a"));
 
-        Some(Player(pId(0).toInt, r.text, d.text.toIntOption.getOrElse(-1), pId(2), c.text, uri.query.get("clubid").get.toInt, t.text.toIntOption.getOrElse(-1)))
-      }
-      case _ => None
-    })
+  //       Some(Player(pId(0).toInt, r.text, d.text.toIntOption, pId(2), c.text, uri.query.get("clubid").get.toInt, t.text.toIntOption))
+  //     }
+  //     case _ => None
+  //   })
 
-    ttrData.flatten
+  //   ttrData.flatten
 
-  }
+  // }
 
 }

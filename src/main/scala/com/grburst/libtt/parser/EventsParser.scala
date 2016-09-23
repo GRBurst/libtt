@@ -1,6 +1,7 @@
 package com.grburst.libtt.parser
 
 import com.grburst.libtt.Event
+import com.grburst.libtt.util.parsingHelper.StringHelper
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.model.Element
@@ -23,7 +24,7 @@ case class EventsParser(url:String = "/storage/emulated/0/mytischtennis.de/event
       case List(s,l,e,a,b,g,ty,tr,td) => {
         val eIdt:String = e >> attr("href")("a")
         val eId = eIdt.substring(eIdt.indexOf("(") + 1, eIdt.indexOf(",",eIdt.indexOf("(")))
-        Some(Event(s.text,l.text,e.text,eId.toInt,a.text,b.text,g.text,ty.text,tr.text.toInt,td.text.toInt))
+        Some(Event(s.text,l.text,e.text,eId.toInt,a.text.toInt,b.text,g.text.replace(',', '.').toFloat,ty.text,tr.text.toIntOption,td.text.toIntOption))
       }
       case _ => None
     })
