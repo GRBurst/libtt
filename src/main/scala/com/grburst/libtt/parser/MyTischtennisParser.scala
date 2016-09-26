@@ -14,6 +14,12 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
 
 case class MyTischtennisParser() {
 
+  def parseUserMasterPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[User] = {
+    val user = (doc >> texts("div.userDatas > :not(.leftSite)")).toList
+    if(user.length > 0) Some(User(0, user(0), user(1), user(2), 0, Nil)) //user(5).toIntOption
+    else None
+  }
+
   def parseSearchPlayerList(doc: net.ruippeixotog.scalascraper.model.Document): List[Player] = {
 
     val ttrTable = doc >> element(".table-striped") >> element("tbody:nth-child(2)") >> elementList("tr")
