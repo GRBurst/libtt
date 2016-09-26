@@ -4,6 +4,9 @@ import com.grburst.libtt.Player
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.util.parsingHelper.StringHelper
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import spray.http.Uri
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
@@ -19,6 +22,7 @@ case class RankingParser(url: String = "/storage/emulated/0/mytischtennis.de/myc
   val eventDoc = browser.parseFile(url)
 
   def get(): List[Player] = {
+  // def get: Future[List[Player]] = Future {
 
     val ttrTable = eventDoc >> element(".table-mytt") >> elementList("tr")
     val ttrData: List[Option[Player]] = ttrTable.map(x => (x >> elementList("td")).toList match {

@@ -3,6 +3,9 @@ package com.grburst.libtt.parser
 import com.grburst.libtt.MyMatch
 import com.grburst.libtt.util.parsingHelper.StringHelper
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.model.Element
 import net.ruippeixotog.scalascraper.dsl.DSL._
@@ -18,6 +21,8 @@ case class EventDetailParser(url: String = "/storage/emulated/0/mytischtennis.de
   val eventDoc = browser.parseFile(url + id)
 
   def get(): List[MyMatch] = {
+  // def get: Future[List[MyMatch]] = Future {
+
     val ttrTable = eventDoc >> element(".table-striped") >> element("tbody") >> elementList("tr")
     val ttrData: List[Option[MyMatch]] = ttrTable.map(x => (x >> elementList("td")).toList match {
       case List(o, r, s1, s2, s3, s4, s5, s6, s7, g) => {
