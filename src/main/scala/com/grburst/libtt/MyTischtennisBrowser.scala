@@ -17,11 +17,11 @@ import akka.actor.ActorSystem
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 
 import com.grburst.libtt.util.types._
+import com.grburst.libtt.parser.MyTischtennisParser
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-case class User(id: Int, firstname: String, surame:String, club: String, clubId: Int, cookies: List[HttpCookie])
 case class MyTischtennisBrowser() {
 
   private var user:Option[User] = None
@@ -32,9 +32,6 @@ case class MyTischtennisBrowser() {
 
   // spray.can.client.user-agent-header = "Mozilla/5.0 (X11; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0"
   // spray.can.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
-
-
-
   private val libttConf = ConfigFactory.parseString("""
     spray.can.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
     spray.can.host-connector.max-redirects = 0"""
@@ -134,7 +131,7 @@ case class MyTischtennisBrowser() {
   //     "showmyfriends" -> "0",
   // }
 
-  def tests = {
+  def tests() = {
 
     println("Get my events")
     getMyEvents onSuccess {
@@ -172,7 +169,7 @@ case class MyTischtennisBrowser() {
     system.shutdown()
   }
 
-  def debugPrintCookies = println(s"cookies stored = ${cookieStorage.toString}")
+  def debugPrintCookies() = println(s"cookies stored = ${cookieStorage.toString}")
   // def searchClub(clubName: String): List[Club] = {}
   // def searchPlayer(firstName: String, lastName): Club = {}
 
