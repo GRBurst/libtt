@@ -4,12 +4,12 @@ import scala.concurrent.Future
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable
 
-import spray.caching.{LruCache, Cache}
+// import spray.caching.{LruCache, Cache}
 import spray.client.pipelining._
-import spray.http._
+import spray.http.{FormData, HttpCookie, HttpRequest, HttpResponse}
 import spray.http.Uri
-import spray.http.HttpHeaders._
-import spray.httpx.encoding.{Gzip, Deflate}
+import spray.http.HttpHeaders.{Cookie, `Set-Cookie`}
+import spray.httpx.encoding.Gzip
 
 import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
@@ -19,8 +19,8 @@ import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.parser.MyTischtennisParser
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+// import scala.concurrent.Await
+// import scala.concurrent.duration._
 
 case class MyTischtennisBrowser() {
 
@@ -30,8 +30,6 @@ case class MyTischtennisBrowser() {
   private val cookieStorage: mutable.ArrayBuffer[HttpCookie] = mutable.ArrayBuffer()
   // val cache: Cache[HttpResponse] = LruCache()
 
-  // spray.can.client.user-agent-header = "Mozilla/5.0 (X11; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0"
-  // spray.can.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
   private val libttConf = ConfigFactory.parseString("""
     spray.can.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
     spray.can.host-connector.max-redirects = 0"""
@@ -53,38 +51,82 @@ case class MyTischtennisBrowser() {
 
   }
 
-  def getMyLeague: Future[List[Player]] = {
-    //TEST-URL
-    val myLeagueUrl = "http://www.mytischtennis.de/community/ajax/_rankingList?groupid=275617&ttrQuartalorAktuell2=aktuell&goAssistentG=Anzeigen"
-
-    makeRequest(myLeagueUrl) map(hres =>
-      if(hres.entity.nonEmpty) parser.parseRanking(JsoupBrowser().parseString(hres.entity.asString))
-      else Nil
-    )
+  def getMyEvents(timeInterval: Option[String] = Some("last12Months")): Future[List[Event]] = {
+    getPlayerEvents(Some(user.get.id.toString), timeInterval)
   }
 
-  def getMyClub: Future[List[Player]] = {
-    //TEST-URL
-    val myClubUrl = "https://www.mytischtennis.de/community/ajax/_rankingList?kontinent=Europa&land=DE&deutschePlusGleichgest=no&alleSpielberechtigen=YES&verband=Alle&bezirk=&kreis=&regionPattern123=&regionPattern4=&regionPattern5=&geschlecht=&geburtsJahrVon=&geburtsJahrBis=&ttrVon=&ttrBis=&ttrQuartalorAktuell=aktuell&anzahlErgebnisse=100&vorname=&nachname=&verein=VfL%20SuS%20Borussia%20Brand&vereinId=157008%2CWTTV&vereinPersonenSuche=&vereinIdPersonenSuche=&ligen=&groupId=&showGroupId=&deutschePlusGleichgest2=no&ttrQuartalorAktuell2=aktuell&showmyfriends=0"
-
-    makeRequest(myClubUrl) map(hres =>
-      if(hres.entity.nonEmpty) parser.parseRanking(JsoupBrowser().parseString(hres.entity.asString))
-      else Nil
-    )
+  def getMyFriendsRanking: Future[List[Player]] = {
+    searchCustomRanking(Map("showmyfriends" -> "1"))
   }
 
-  def getMyEvents: Future[List[Event]] = {
-    val eventsUrl = "https://www.mytischtennis.de/community/events"
-    makeRequest(eventsUrl) map(hres =>
+  def getMyLeagueRanking: Future[List[Player]] = {
+    getLeagueRanking(user.get.leagueId.toString)
+  }
+
+  def getMyClubRanking: Future[List[Player]] = {
+    getClubRanking(user.get.clubId.toString, user.get.club)
+  }
+
+  // TODO: implement player profile parser
+//   def getPlayerProfileById(playerId: String, playerName: String): Future[Player] = {
+//     val playerProfileUrl = Uri("https://www.mytischtennis.de/community/ajax/_tooltippstuff")
+//       .withQuery(Map(
+//         "writetodb" -> "false",
+//         "otherUsersClickTTId" -> playerId,
+//         "otherUsersUserId" -> "0",
+//         "nameOfOtherUser" -> playerName))
+
+//       makeGetRequest(playerProfileUrl.toString) map(hres =>
+//       if(hres.entity.nonEmpty) parser.parsePlayerProfile(JsoupBrowser().parseString(hres.entity.asString))
+//       else Nil
+//     )
+//   }
+
+  def getPlayerEvents(playerId: Option[String] = None, timeInterval: Option[String] = None): Future[List[Event]] = {
+    val playerEventsUrl = Uri("https://www.mytischtennis.de/community/events")
+    val request = timeInterval match {
+      case None => playerId match {
+        case None => Get(playerEventsUrl)
+        case Some(player) => Get(playerEventsUrl.withQuery(Map("personId" -> player)))
+      }
+      case Some(time) =>
+        val data = FormData(Map("timeIntervalKeyWord" -> time))
+        playerId match {
+          case None => Post(playerEventsUrl, data)
+          case Some(player) => Post(playerEventsUrl.withQuery(Map("personId" -> player)), data)
+      }
+    }
+
+    makeRequest(request) map(hres =>
       if(hres.entity.nonEmpty) parser.parseEvents(JsoupBrowser().parseString(hres.entity.asString))
       else Nil
     )
+
   }
 
-  def getEventDetail: Future[List[MyMatch]] = {
-    //TEST-URL
-    val eventDetailUrl = "https://www.mytischtennis.de/community/eventDetails?fq=false&eventId=186649490"
-    makeRequest(eventDetailUrl) map(hres =>
+  def getLeagueRanking(leagueId: String): Future[List[Player]] = {
+    val leagueUrl = Uri("http://www.mytischtennis.de/community/ajax/_rankingList")
+      .withQuery(Map(
+        "groupid" -> leagueId,
+        "ttrQuartalorAktuell2" -> "aktuell",
+        "goAssistentG" -> "Anzeigen"))
+
+    makeGetRequest(leagueUrl.toString) map(hres =>
+      if(hres.entity.nonEmpty) parser.parseRanking(JsoupBrowser().parseString(hres.entity.asString))
+      else Nil
+    )
+  }
+
+  def getClubRanking(clubId: String, clubName: String): Future[List[Player]] = {
+    searchCustomRanking(Map("alleSpielberechtigen" -> "YES", "verband" -> "Alle",
+      "verein" -> clubName, "vereinId" -> clubId))
+  }
+
+  def getEventDetail(eventId: String): Future[List[MyMatch]] = {
+    val eventDetailUrl = Uri("https://www.mytischtennis.de/community/eventDetails")
+      .withQuery(Map("fq" -> "false", "eventId" -> eventId))
+
+    makeGetRequest(eventDetailUrl.toString) map(hres =>
       if(hres.entity.nonEmpty) parser.parseEventDetail(JsoupBrowser().parseString(hres.entity.asString))
       else Nil
     )
@@ -92,101 +134,126 @@ case class MyTischtennisBrowser() {
   }
 
   def searchClub(clubName: String): Future[List[Club]] = {
-    val searchClubUrl = Uri("https://www.mytischtennis.de/community/ajax/_vereinbox").withQuery(Map("trigger" -> "1", "d"-> (clubName)))
-    makeRequest(searchClubUrl.toString) map(hres =>
+    val searchClubUrl = Uri("https://www.mytischtennis.de/community/ajax/_vereinbox")
+      .withQuery(Map("trigger" -> "1", "d"-> (clubName)))
+
+    makeGetRequest(searchClubUrl.toString) map(hres =>
       if(hres.entity.nonEmpty) parser.parseSearchClubList(JsoupBrowser().parseString(hres.entity.asString))
       else Nil
     )
   }
 
-  // def searchRanking: Future[List[Club]] = {
-  //   val searchRankingUrl = Uri("https://www.mytischtennis.de/community/ajax/_rankingList").withQuery(Map("kontinent" -> "Europa",
-  //     "land" -> "DE",
-  //     "deutschePlusGleichgest" -> "no",
-  //     "alleSpielberechtigen" -> "",
-  //     "verband" -> "",
-  //     "bezirk" -> "",
-  //     "kreis" -> "",
-  //     "regionPattern123" -> "",
-  //     "regionPattern4" -> "",
-  //     "regionPattern5" -> "",
-  //     "geschlecht" -> "",
-  //     "geburtsJahrVon" -> "",
-  //     "geburtsJahrBis" -> "",
-  //     "ttrVon" -> "",
-  //     "ttrBis" -> "",
-  //     "ttrQuartalorAktuell" -> "aktuell",
-  //     "anzahlErgebnisse" -> "100",
-  //     "vorname" -> user.firstname,
-  //     "nachname" -> user.surname,
-  //     "verein" -> "",
-  //     "vereinId" -> "",
-  //     "vereinPersonenSuche" -> user.club,
-  //     "vereinIdPersonenSuche" -> user.clubId,//%2CWTTV
-  //     "ligen" -> "",
-  //     "groupId" -> "",
-  //     "showGroupId" -> "",
-  //     "deutschePlusGleichgest2" -> "no",
-  //     "ttrQuartalorAktuell2" -> "aktuell",
-  //     "showmyfriends" -> "0",
-  // }
-
-  def tests() = {
-
-    println("Get my events")
-    getMyEvents onSuccess {
-      case l =>
-        println(s"Events Success: ${l.take(10).toString}")
-
-        println("Get my club")
-        getMyClub onSuccess {
-          case l =>
-            println(s"Club Success: ${l.take(10).toString}")
-
-            println("Get my league")
-            getMyLeague onSuccess {
-              case l =>
-                println(s"League Success: ${l.take(10).toString}")
-
-                println("Get event Detail")
-                getEventDetail onSuccess {
-                case l =>
-                  println(s"EventDetail Success: ${l.toString}")
-
-                }
-
-            }
-
-        }
-
-    }
-
-    // shutdown()
-
+  def searchPlayer(firstName: String, lastName: String, clubId: String, clubName: String, organisation: String): Future[List[Player]] = {
+    searchCustomRanking(Map(
+      "vorname" -> firstName, "nachname" -> lastName,
+      "verein" -> (clubName + "," + organisation),
+      "vereinId" -> clubId))
   }
 
-  def shutdown() = {
-    system.shutdown()
+  def searchPlayer(firstName: String, lastName: String): Future[List[Player]] = {
+    val searchPlayerUrl = Uri("https://www.mytischtennis.de/community/ranking")
+      .withQuery(Map(
+        "panel" -> "2",
+        "vorname" -> firstName,
+        "nachname" -> lastName,
+        "vereinIdPersonenSuche" -> "",
+        "vereinPersonenSuche" -> "Verein+suchen",
+        "goAssistentP" -> "Anzeigen"))
+
+    makeGetRequest(searchPlayerUrl.toString) map(hres =>
+      if(hres.entity.nonEmpty) parser.parseRanking(JsoupBrowser().parseString(hres.entity.asString))
+      else Nil
+    )
+  }
+  // def searchPlayer(firstName: String, lastName): Club = {}
+
+  def searchCustomRanking(userChoice: Map[String, String]): Future[List[Player]] = {
+    val searchRankingUrl = Uri("https://www.mytischtennis.de/community/ajax/_rankingList")
+      .withQuery(Map("kontinent" -> "Europa",
+      "land" -> "DE",
+      "deutschePlusGleichgest" -> "no",
+      "alleSpielberechtigen" -> "",
+      "verband" -> "",
+      "bezirk" -> "",
+      "kreis" -> "",
+      "regionPattern123" -> "",
+      "regionPattern4" -> "",
+      "regionPattern5" -> "",
+      "geschlecht" -> "",
+      "geburtsJahrVon" -> "",
+      "geburtsJahrBis" -> "",
+      "ttrVon" -> "",
+      "ttrBis" -> "",
+      "ttrQuartalorAktuell" -> "aktuell",
+      "anzahlErgebnisse" -> "100",
+      "vorname" -> "",
+      "nachname" -> "",
+      "verein" -> "",
+      "vereinId" -> "",
+      "vereinPersonenSuche" -> "",
+      "vereinIdPersonenSuche" -> "",
+      "ligen" -> "",
+      "groupId" -> "",
+      "showGroupId" -> "",
+      "deutschePlusGleichgest2" -> "no",
+      "ttrQuartalorAktuell2" -> "aktuell",
+      "showmyfriends" -> "0"
+      ) ++ userChoice
+    )
+
+    makeGetRequest(searchRankingUrl.toString) map(hres =>
+      if(hres.entity.nonEmpty) parser.parseRanking(JsoupBrowser().parseString(hres.entity.asString))
+      else Nil
+    )
+  }
+
+  // def tests() = {
+
+  //   println("Get my events")
+  //   getMyEvents() onSuccess {
+  //     case l =>
+  //       println(s"Events Success: ${l.take(10).toString}")
+
+  //       println("Get my club")
+  //       getMyClubRanking onSuccess {
+  //         case l =>
+  //           println(s"Club Success: ${l.take(10).toString}")
+
+  //           println("Get my league")
+  //           getMyLeagueRanking onSuccess {
+  //             case l =>
+  //               println(s"League Success: ${l.take(10).toString}")
+
+  //               println("Get event Detail")
+  //               getEventDetail onSuccess {
+  //               case l =>
+  //                 println(s"EventDetail Success: ${l.toString}")
+
+  //               }
+
+  //           }
+
+  //       }
+
+  //   }
+
+  // }
+
+  def terminate() = {
+    system.terminate()
   }
 
   def debugPrintCookies() = println(s"cookies stored = ${cookieStorage.toString}")
-  // def searchClub(clubName: String): List[Club] = {}
-  // def searchPlayer(firstName: String, lastName): Club = {}
-
-  // def getClubById(clubId: Int, clubName: String): Club = {}
-  // def getEventById(eventId: Int): Event = {}
-  // def getMatchById(matchId: Int): MyMatch = {}
-  // def getPlayerById(playerId: Int): Player = {}
 
   private def initiateUser() = {
     val userUrl = "http://www.mytischtennis.de/community/userMasterPagePrint"
-    val tUser:Future[Option[User]] = makeRequest(userUrl).map(hres =>
+    val tUser:Future[Option[User]] = makeGetRequest(userUrl).map(hres =>
         if(hres.entity.nonEmpty) parser.parseUserMasterPage(JsoupBrowser().parseString(hres.entity.asString))
         else None)
 
     val fClub:Future[Option[Club]] = tUser.flatMap(u => {
       val searchUrl = Uri("https://www.mytischtennis.de/community/ajax/_vereinbox").withQuery(Map("trigger" -> "1", "d"-> (u.get.club)))
-      makeRequest(searchUrl.toString).map(hres =>
+      makeGetRequest(searchUrl.toString).map(hres =>
           if(hres.entity.nonEmpty) Some(parser.parseSearchClubList(JsoupBrowser().parseString(hres.entity.asString)).head)
           else None)
     })
@@ -214,11 +281,11 @@ case class MyTischtennisBrowser() {
     val data = FormData(Map("userNameB" -> userName, "userPassWordB" -> pass))
     val request = Post("http://www.mytischtennis.de/community/login", data)
 
-      pipeline(request)
+    pipeline(request)
 
   }
 
-  private def makeRequest(url: String):Future[HttpResponse] = {
+  private def makeRequest(request: HttpRequest):Future[HttpResponse] = {
     val pipeline: HttpRequest => Future[HttpResponse] = (addCookies
       ~> addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
       ~> addHeader("Accept-Language", "de,en-US;q=0.7,en;q=0.3")
@@ -227,24 +294,19 @@ case class MyTischtennisBrowser() {
       ~> sendReceive
       ~> decode(Gzip))
 
-    pipeline(Get(url))
-
+    pipeline(request)
   }
 
-  // def extractRequest[T]: List[T](hres: HttpResponse) = {
+  private def makeGetRequest(url: String):Future[HttpResponse] = {
+    makeRequest(Get(url))
+  }
 
-  //   if(hres.entity.nonEmpty){
-  //     val browser = JsoupBrowser()
-  //     parse(browser.parseString(hres.entity.asString))
-  //   }
-
-  // }
+  private def makePostRequest(url: String, form: FormData):Future[HttpResponse] = {
+    makeRequest(Post(url, form))
+  }
 
   // def makeCachedRequest(url: String) = cache(url) {
-  //   makeRequest(url)
+  //   makeGetRequest(url)
   // }
 
 }
-
-// Dalvik/2.1.0 (Linux; U; Android 6.0.1; A0001 Build/MMB29V)
-// addHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0")
