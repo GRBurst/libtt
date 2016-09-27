@@ -1,5 +1,6 @@
-package com.grburst.libtt
+package com.grburst.libtt.parser
 
+import com.grburst.libtt._
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.util.parsingHelper.StringHelper
 
@@ -16,7 +17,7 @@ case class MyTischtennisParser() {
 
   def parseUserMasterPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[User] = {
     val user = (doc >> texts("div.userDatas > :not(.leftSite)")).toList
-    if(user.length > 0) Some(User(0, user(0), user(1), user(2), 0, Nil)) //user(5).toIntOption
+    if(user.length > 0) Some(User(0, user(0), user(1), user(2), 0, user(3), user(4), user(5).toIntOption, None, Nil)) //
     else None
   }
 
