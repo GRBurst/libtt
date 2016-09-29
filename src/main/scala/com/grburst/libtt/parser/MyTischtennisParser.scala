@@ -27,7 +27,7 @@ case class MyTischtennisParser() {
     val ttr = (doc >> text(".label-primary")).split(" ")
     val id = Uri(doc >> attr("href")("a.ttrInfo")).query.get("personId")
 
-    Try(PlayerInfo(id.get.toInt, name(0).trim, name(1).trim, ttr(1).trim.toIntOption, ttr(1).trim.toIntOption)).toOption
+    Try(ProfileInfo(id.get.toInt, name(0).trim, name(1).trim, ttr(1).trim.toIntOption, ttr(1).trim.toIntOption)).toOption
   }
 
   def findGroupId(doc: net.ruippeixotog.scalascraper.model.Document): Option[Int] = {
