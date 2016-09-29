@@ -20,15 +20,18 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
     user.id mustEqual 0
     user.firstname mustEqual "Max"
     user.surname mustEqual "Mustermann"
-    user.club mustEqual "TTV Musterverein"
-    user.clubId mustEqual 0
-    user.organisation mustEqual "XTTV"
-    user.league mustEqual "Herren-Spezialliga 1"
-    user.qttr mustEqual Some(2526)
+    user.club.get mustEqual "TTV Musterverein"
+    user.clubId mustEqual None
+    user.organisation.get mustEqual "XTTV"
+    user.league.get mustEqual "Herren-Spezialliga 1"
+    user.leagueId mustEqual None
+    user.qttr.get mustEqual 2526
     user.ttr mustEqual None
+    user.vRank mustEqual None
+    user.dRank mustEqual None
     user.cookies mustEqual Nil
 
-    user mustEqual User(0, "Max", "Mustermann", "TTV Musterverein", 0, "XTTV", "Herren-Spezialliga 1", Some(2526), None, Nil)
+    user mustEqual User(0, "Max", "Mustermann", Some("TTV Musterverein"), None, Some("XTTV"), Some("Herren-Spezialliga 1"), None, Some(2526), None, None, None, Nil)
 
   }
 
@@ -43,9 +46,9 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
     clubList(0).organisation mustEqual "XTTV"
     clubList(0).orgaId mustEqual 1010
 
-    clubList(0) mustEqual Club(10100, "TTV Musterclub 1", "XTTV", 1010 )
-    clubList(1) mustEqual Club(100100, "TTV Musterclub 2", "YTTV", 1020 )
-    clubList(2) mustEqual Club(1000100, "TTV Musterclub 3", "XTTV", 1030 )
+    clubList(0) mustEqual Club(10100, "TTV Musterclub 1", "XTTV", 1010)
+    clubList(1) mustEqual Club(100100, "TTV Musterclub 2", "YTTV", 1020)
+    clubList(2) mustEqual Club(1000100, "TTV Musterclub 3", "XTTV", 1030)
 
   }
 
@@ -73,9 +76,10 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
 
     val matchList = parser.parseEventDetail(browser.parseFile("src/test/res/eventDetails.htm"))
 
-    matchList(0).opponent mustEqual "Mustermann1, Max1"
-    matchList(0).oTTR.get mustEqual 2000
-    matchList(0).oId mustEqual 2000100
+    matchList(0).firstname mustEqual "Max1"
+    matchList(0).surname mustEqual "Mustermann1"
+    matchList(0).ttr.get mustEqual 2000
+    matchList(0).opponentId mustEqual 2000100
     matchList(0).result mustEqual "3:0"
     matchList(0).set1 mustEqual "11:5"
     matchList(0).set2 mustEqual "11:6"
@@ -86,7 +90,7 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
     matchList(0).set7 mustEqual None
     matchList(0).ge mustEqual 0.511f
 
-    matchList(0) mustEqual MyMatch("Mustermann1, Max1", Some(2000), 2000100, "3:0", "11:5", "11:6", "11:7", None, None, None, None, 0.511f )
+    matchList(0) mustEqual MyMatch("Max1", "Mustermann1", Some(2000), 2000100, "3:0", "11:5", "11:6", "11:7", None, None, None, None, 0.511f)
 
   }
 
@@ -97,12 +101,13 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
     playerList(0).id mustEqual 100100
     playerList(0).vRank.get mustEqual 1
     playerList(0).dRank.get mustEqual 1000
-    playerList(0).name mustEqual "Max Mustermann"
+    playerList(0).firstname mustEqual "Max"
+    playerList(0).surname mustEqual "Mustermann"
     playerList(0).club mustEqual "Musterverein"
     playerList(0).clubId mustEqual 200100
     playerList(0).ttr.get mustEqual 2222
-    playerList(0) mustEqual Player(100100, Some(1), Some(1000), "Max Mustermann", "Musterverein", 200100, Some(2222) )
-    playerList(1) mustEqual Player(100200, Some(2), Some(2000), "Maxi Musterfrau", "Musterverein", 200100, Some(2112) )
+    playerList(0) mustEqual Player(100100, Some(1), Some(1000), "Max", "Mustermann", "Musterverein", 200100, Some(2222))
+    playerList(1) mustEqual Player(100200, Some(2), Some(2000), "Maxi", "Musterfrau", "Musterverein", 200100, Some(2112))
 
   }
 

@@ -9,9 +9,10 @@ case class Club(
   orgaId: Int)
 
 case class MyMatch(
-  opponent: String,
-  oTTR: TTR,
-  oId: Int,
+  firstname: String,
+  surname: String,
+  ttr: TTR,
+  opponentId: Int,
   result: String,
   set1: String,
   set2: String,
@@ -27,12 +28,14 @@ case class Player(
   id: Int,
   vRank: Rank,
   dRank: Rank,
-  name: String,
+  firstname: String,
+  surname: String,
   club: String,
   clubId: Int,
   ttr: TTR)
 
-case class Event(sDate: String,
+case class Event(
+  sDate: String,
   lDate: String,
   name: String,
   id: Int,
@@ -42,4 +45,3 @@ case class Event(sDate: String,
   typ: String,
   ttr: TTR,
   ttrDiff: TTR)
-
