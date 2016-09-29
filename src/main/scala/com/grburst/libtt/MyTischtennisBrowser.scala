@@ -19,9 +19,6 @@ import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.parser.MyTischtennisParser
 
-// import scala.concurrent.Await
-// import scala.concurrent.duration._
-
 case class MyTischtennisBrowser() {
 
   // private var user = User(0, "Max", "Musterfrau", None, None, None, None, None, None, None, None, None, Nil)
@@ -55,15 +52,15 @@ case class MyTischtennisBrowser() {
   }
 
   def getMyClubRanking: Future[List[Player]] = {
-    val playerProfileUrl = Uri("https://www.mytischtennis.de/community/ajax/_rankingList")
+    val clubRankingUrl = Uri("https://www.mytischtennis.de/community/ajax/_rankingList")
       .withQuery(Map("showmyclub" -> "1"))
 
-    makeGetRequest(playerProfileUrl.toString) map (hres =>
+    makeGetRequest(clubRankingUrl.toString) map (hres =>
       if (hres.entity.nonEmpty) parser.parseRanking(JsoupBrowser().parseString(hres.entity.asString))
       else Nil)
   }
 
-  def getMyPlayerProfile(user: User): Future[Option[Player]] = {
+  def getMyPlayerProfile(user: User): Future[Option[ProfileInfo]] = {
     getPlayerProfile(user.id, user.firstname, user.surname)
   }
 
@@ -72,7 +69,7 @@ case class MyTischtennisBrowser() {
    * and are more general
    */
 
-  def getPlayerProfile(playerId: Int, playerFirstname: String, playerSurname: String): Future[Option[Player]] = {
+  def getPlayerProfile(playerId: Int, playerFirstname: String, playerSurname: String): Future[Option[ProfileInfo]] = {
     val playerProfileUrl = Uri("https://www.mytischtennis.de/community/ajax/_tooltippstuff")
       .withQuery(Map(
         "writetodb" -> "false",

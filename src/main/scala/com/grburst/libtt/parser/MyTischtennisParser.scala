@@ -22,14 +22,16 @@ case class MyTischtennisParser() {
     else None
   }
 
-  // TODO: implement player profile parser
-  def parsePlayerProfile(doc: net.ruippeixotog.scalascraper.model.Document): Option[Player] = {
-    None
+  def parsePlayerProfile(doc: net.ruippeixotog.scalascraper.model.Document): Option[ProfileInfo] = {
+    val name = (doc >> text("h2")).split(" ")
+    val ttr = (doc >> text(".label-primary")).split(" ")
+    val id = Uri(doc >> attr("href")("a.ttrInfo")).query.get("personId")
+
+    Try(PlayerInfo(id.get.toInt, name(0).trim, name(1).trim, ttr(1).trim.toIntOption, ttr(1).trim.toIntOption)).toOption
   }
 
-  // TODO: implement parser to find league / group id
   def findGroupId(doc: net.ruippeixotog.scalascraper.model.Document): Option[Int] = {
-    None
+    Uri(doc >> element("div.panel-body") >> attr("href")("a")).query.get("groupId").get.toIntOption
   }
 
   def parseSearchPlayerList(doc: net.ruippeixotog.scalascraper.model.Document): List[Player] = {

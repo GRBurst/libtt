@@ -23,7 +23,13 @@ case class MyMatch(
   set7: Option[String],
   ge: Float)
 
-// Use Options in fields where no information is possible
+case class ProfileInfo(
+  id: Int,
+  firstname: String,
+  surname: String,
+  qttr: TTR,
+  ttr: TTR)
+
 case class Player(
   id: Int,
   vRank: Rank,
