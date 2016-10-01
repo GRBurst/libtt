@@ -29,17 +29,29 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
     user.ttr mustEqual None
     user.vRank mustEqual None
     user.dRank mustEqual None
-    user.cookies mustEqual Nil
+    user.cookies mustEqual Map()
 
-    user mustEqual User(0, "Max", "Mustermann", Some("TTV Musterverein"), None, Some("XTTV"), Some("Herren-Spezialliga 1"), None, Some(2526), None, None, None, Nil)
+    user mustEqual User(0, "Max", "Mustermann", Map(), Some("TTV Musterverein"), None, Some("XTTV"), Some("Herren-Spezialliga 1"), None, Some(2526), None, None, None)
 
   }
 
   "parseSearchPlayerList" >> todo
 
+  "parsePlayerProfile" >> {
+    val playerProfile = parser.parsePlayerProfile(browser.parseFile("src/test/res/profilePage.htm")).get
+
+    playerProfile.id mustEqual 654321
+    playerProfile.firstname mustEqual "maxi"
+    playerProfile.surname mustEqual "musterfrau"
+    playerProfile.ttr.get mustEqual 1999
+    playerProfile.qttr.get mustEqual 2000
+    playerProfile.userId.get mustEqual 12345
+
+  }
+
   "parse result of a club search" >> {
 
-    val clubList = parser.parseSearchClubList(browser.parseFile("src/test/res/verein_search.htm"))
+    val clubList = parser.parseSearchClubList(browser.parseFile("src/test/res/verein_search.htm")).get
 
     clubList(0).id mustEqual 10100
     clubList(0).name mustEqual "TTV Musterclub 1"
@@ -54,7 +66,7 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
 
   "parse events page" >> {
 
-    val eventsList = parser.parseEvents(browser.parseFile("src/test/res/events.htm"))
+    val eventsList = parser.parseEvents(browser.parseFile("src/test/res/events.htm")).get
 
     eventsList(0).sDate mustEqual "25.05."
     eventsList(0).lDate mustEqual "25.05.2099"
@@ -74,7 +86,7 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
 
   "parse event details" >> {
 
-    val matchList = parser.parseEventDetail(browser.parseFile("src/test/res/eventDetails.htm"))
+    val matchList = parser.parseEventDetail(browser.parseFile("src/test/res/eventDetails.htm")).get
 
     matchList(0).firstname mustEqual "Max1"
     matchList(0).surname mustEqual "Mustermann1"
@@ -96,7 +108,7 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
 
   "ranking parser" >> {
 
-    val playerList = parser.parseRanking(browser.parseFile("src/test/res/ranking.htm"))
+    val playerList = parser.parseRanking(browser.parseFile("src/test/res/ranking.htm")).get
 
     playerList(0).id mustEqual 100100
     playerList(0).vRank.get mustEqual 1
@@ -104,10 +116,10 @@ class MyTischtennisParserSpec extends org.specs2.mutable.Specification {
     playerList(0).firstname mustEqual "Max"
     playerList(0).surname mustEqual "Mustermann"
     playerList(0).club mustEqual "Musterverein"
-    playerList(0).clubId mustEqual 200100
+    playerList(0).clubId mustEqual Some(200100)
     playerList(0).ttr.get mustEqual 2222
-    playerList(0) mustEqual Player(100100, Some(1), Some(1000), "Max", "Mustermann", "Musterverein", 200100, Some(2222))
-    playerList(1) mustEqual Player(100200, Some(2), Some(2000), "Maxi", "Musterfrau", "Musterverein", 200100, Some(2112))
+    playerList(0) mustEqual Player(100100, Some(1), Some(1000), "Max", "Mustermann", "Musterverein", Some(200100), Some(2222))
+    playerList(1) mustEqual Player(100200, Some(2), Some(2000), "Maxi", "Musterfrau", "Musterverein", Some(200100), Some(2112))
 
   }
 
