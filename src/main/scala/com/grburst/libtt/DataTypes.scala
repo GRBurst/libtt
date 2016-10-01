@@ -1,6 +1,22 @@
 package com.grburst.libtt
 
 import com.grburst.libtt.util.types._
+import spray.http.HttpCookie
+
+case class User(
+  id: Int,
+  firstname: String,
+  surname: String,
+  var cookies: Map[String,HttpCookie] = Map(),
+  club: Option[String] = None,
+  clubId: Option[Int] = None,
+  organisation: Option[String] = None,
+  league: Option[String] = None,
+  leagueId: Option[Int] = None,
+  qttr: Option[Int] = None,
+  ttr: Option[Int] = None,
+  vRank: Option[Int] = None,
+  dRank: Option[Int] = None)
 
 case class Club(
   id: Int,
@@ -27,8 +43,9 @@ case class ProfileInfo(
   id: Int,
   firstname: String,
   surname: String,
+  ttr: TTR,
   qttr: TTR,
-  ttr: TTR)
+  userId: Option[Int])
 
 case class Player(
   id: Int,
@@ -37,7 +54,7 @@ case class Player(
   firstname: String,
   surname: String,
   club: String,
-  clubId: Int,
+  clubId: Option[Int],
   ttr: TTR)
 
 case class Event(
