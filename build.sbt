@@ -35,6 +35,33 @@ libraryDependencies ++= Seq(
   // "org.specs2"          %%  "specs2-core"   % "2.3.11" % "test",
   // "org.scalaz"          %%  "scalaz-core"   % "7.1.0")
 
+initialCommands in console := """
+import com.grburst.libtt
+import com.grburst.libtt._
+import com.grburst.libtt.util.types._
+import com.grburst.libtt.parser.MyTischtennisParser
+import com.grburst.libtt.util.parsingHelper.StringHelper
+
+import scala.concurrent.{Future, Await}
+import scala.concurrent.duration._
+import scala.util.{ Try, Success, Failure }
+
+import spray.client.pipelining._
+import spray.http.{ FormData, HttpCookie, HttpRequest, HttpResponse }
+import spray.http.Uri
+import spray.http.HttpHeaders.{ Cookie, `Set-Cookie` }
+import spray.httpx.encoding.Gzip
+
+import com.typesafe.config.ConfigFactory
+import akka.actor.ActorSystem
+
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import net.ruippeixotog.scalascraper.model.Element
+import net.ruippeixotog.scalascraper.dsl.DSL._
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
+import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
+"""
+
 // Tests //////////////////////////////
 
 libraryDependencies ++= Seq("org.specs2" %% "specs2-core" % "3.8.5" % "test")
