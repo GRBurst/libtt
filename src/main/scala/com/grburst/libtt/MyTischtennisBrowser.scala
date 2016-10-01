@@ -289,59 +289,6 @@ case class MyTischtennisBrowser() {
         initiateUser(User(0, "", "", cookies = extractCookies(res))))
   }
 
-  def loginAndTest() = {
-
-    val l = doLogin(u, p)
-    l onComplete {
-      case Success(res: HttpResponse) => {
-        println("Successfully logged in")
-        val u1 = initMyMasterData(User(0, "", "", extractCookies(res)))
-
-        u1 onComplete {
-          case Success(resU1) => {
-            println("Successfully read users master data")
-            println(resU1.toString)
-            val u2 = initMyLeagueData(resU1.get)
-
-            u2 onComplete {
-              case Success(resU2) => {
-                println("Successfully read users league id")
-                println(resU2.toString)
-                val u3 = initMyClubData(resU1.get)
-
-                u3 onComplete {
-                  case Success(resU3) => {
-                    println("Successfully read users club data")
-                    println(resU3.toString)
-                    val u4 = initMyPlayerData(resU3)(resU1.get)
-
-                    u4 onComplete {
-                      case Success(resU4) => {
-                        println("Successfully read users player data")
-                        println(resU4.toString)
-                        val u5 = userDataFusion(resU1, resU3, resU4, resU2)
-
-                        println("Fusing user data")
-                        println(u5.toString)
-
-                      }
-                      case Failure(e) => println(s"Error: $e"); println(u4.toString)
-                    }
-                  }
-                      case Failure(e) => println(s"Error: $e")
-                }
-              }
-                      case Failure(e) => println(s"Error: $e")
-            }
-          }
-                      case Failure(e) => println(s"Error: $e")
-        }
-      }
-                      case Failure(e) => println(s"Error: $e")
-    }
-
-  }
-
   private def doLogin(userName: String, pass: String): Future[HttpResponse] = {
     val pipeline: HttpRequest => Future[HttpResponse] = (sendReceive)
     val data = FormData(Map("userNameB" -> userName, "userPassWordB" -> pass))
