@@ -1,6 +1,7 @@
 package com.grburst.libtt.parser
 
 import com.grburst.libtt._
+import com.grburst.libtt.types._
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.util.parsingHelper.StringHelper
 
@@ -15,6 +16,14 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
 
 // TODO: Wrap extractions in Options since scraper throws execption if element is not found
 case class MyTischtennisParser() {
+
+  def findGroupId(doc: net.ruippeixotog.scalascraper.model.Document): Option[Int] = {
+    Try(Uri(doc >> element("div.panel-body") >> attr("href")("a")).query.get("groupId").get.toInt).toOption
+  }
+
+  def isLoginPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[Boolean] = {
+    Try((doc >> text("title")).contains("Login")).toOption
+  }
 
   def parseUserMasterPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[User] = {
     // further parse for .hideOwn[id] for id
@@ -36,10 +45,6 @@ case class MyTischtennisParser() {
     }).toOption
   }
 
-  def findGroupId(doc: net.ruippeixotog.scalascraper.model.Document): Option[Int] = {
-    Try(Uri(doc >> element("div.panel-body") >> attr("href")("a")).query.get("groupId").get.toInt).toOption
-  }
-
   def parseSearchPlayerList(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Player]] = {
 
     Try({
@@ -53,13 +58,13 @@ case class MyTischtennisParser() {
 
           Player(pId(0).toInt, None, d.text.toIntOption, name(1).trim, name(0).trim, c.text, clubId, t.text.toIntOption)
         }).toOption
-      case _ => None
+        case _ => None
       })
 
-    ttrData.flatten
-      }).toOption
+      ttrData.flatten
+    }).toOption
 
-    }
+  }
 
   def parseSearchClubList(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Club]] = {
 
@@ -73,11 +78,10 @@ case class MyTischtennisParser() {
         Club(id, v.text, orga.toString, orgaId)
       }).toOption)
 
-  ttrData.flatten
+      ttrData.flatten
 
     }).toOption
   }
-
 
   def parseEvents(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Event]] = {
 
@@ -89,9 +93,9 @@ case class MyTischtennisParser() {
           val eId = eIdt.substring(eIdt.indexOf("(") + 1, eIdt.indexOf(",", eIdt.indexOf("(")))
           Event(s.text, l.text, e.text, eId.toInt, a.text.toInt, b.text, g.text.replace(',', '.').toFloat, ty.text, tr.text.toIntOption, td.text.toIntOption)
         }).toOption
-      case _ => None
+        case _ => None
       })
-    ttrData.flatten
+      ttrData.flatten
 
     }).toOption
   }
@@ -111,9 +115,9 @@ case class MyTischtennisParser() {
 
           MyMatch(name(1).trim, name(0).trim, ottr.toIntOption, oIdt(0).toInt, r.text, s1.text, s2.text, s3.text, isTTSet(s4.text), isTTSet(s5.text), isTTSet(s6.text), isTTSet(s7.text), g.text.replace(',', '.').toFloat)
         }).toOption
-      case _ => None
+        case _ => None
       })
-    ttrData.flatten
+      ttrData.flatten
 
     }).toOption
   }
@@ -131,12 +135,11 @@ case class MyTischtennisParser() {
 
           Player(pId(0).toInt, vr, d.text.toIntOption, name(0).trim, name(1).trim, c.text, clubId, t.text.toIntOption)
         }).toOption
-      case _ => None
+        case _ => None
       })
-    ttrData.flatten
+      ttrData.flatten
 
     }).toOption
   }
 
-
-  }
+}

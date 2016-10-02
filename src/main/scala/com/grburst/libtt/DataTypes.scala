@@ -1,4 +1,4 @@
-package com.grburst.libtt
+package com.grburst.libtt.types
 
 import com.grburst.libtt.util.types._
 import spray.http.HttpCookie
@@ -7,7 +7,7 @@ case class User(
   id: Int,
   firstname: String,
   surname: String,
-  var cookies: Map[String,HttpCookie] = Map(),
+  var cookies: Map[String, HttpCookie] = Map(),
   club: Option[String] = None,
   clubId: Option[Int] = None,
   organisation: Option[String] = None,

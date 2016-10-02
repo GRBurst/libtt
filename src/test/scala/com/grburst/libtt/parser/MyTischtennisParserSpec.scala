@@ -1,6 +1,7 @@
 package libtt.test
 
 import com.grburst.libtt._
+import com.grburst.libtt.types._
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.parser.MyTischtennisParser
 
