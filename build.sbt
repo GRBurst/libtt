@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   name := "libtt",
   organization := "com.grburst",
-  version := "0.2.2-SNAPSHOT",
+  version := "0.2.3-SNAPSHOT",
   scalaVersion := "2.11.8")
 
 lazy val root = (project in file(".")).
@@ -29,7 +29,7 @@ lazy val root = (project in file(".")).
       "io.spray" %% "spray-caching" % "1.3.4",
       "io.spray" %% "spray-client" % "1.3.4",
       "com.typesafe.akka" %% "akka-actor" % "2.3.9",
-      "com.typesafe" % "config" % "1.3.1"),
+      "com.typesafe" % "config" % "1.2.1"),
 
     initialCommands in console := """
 import com.grburst.libtt
