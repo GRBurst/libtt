@@ -8,6 +8,7 @@ lazy val root = (project in file(".")).
   settings(commonSettings: _*).
   settings(
 
+    javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
     scalacOptions ++= (
       "-encoding" :: "UTF-8" ::
       "-unchecked" ::
@@ -25,17 +26,10 @@ lazy val root = (project in file(".")).
 
     libraryDependencies ++= Seq(
       "net.ruippeixotog" %% "scala-scraper" % "1.0.0",
-      "io.spray" %% "spray-caching" % "1.3.2",
-      "io.spray" %% "spray-client" % "1.3.2",
-      "com.typesafe.akka" %% "akka-actor" % "2.4.10",
-      "com.typesafe" % "config" % "1.3.0",
-      "com.typesafe.play" %% "play-ws" % "2.5.8",
-      "org.slf4j" % "slf4j-api" % "1.7.5",
-      "org.slf4j" % "slf4j-simple" % "1.7.5",
-      "org.scalatest" %% "scalatest" % "2.2.4" % "test"),
-    //  "com.github.scopt" %% "scopt" % "3.5.0",
-    // "com.typesafe.akka"   %%  "akka-testkit"  % "2.3.6"   % "test",
-    // "org.scalaz"          %%  "scalaz-core"   % "7.1.0")
+      "io.spray" %% "spray-caching" % "1.3.4",
+      "io.spray" %% "spray-client" % "1.3.4",
+      "com.typesafe.akka" %% "akka-actor" % "2.3.9",
+      "com.typesafe" % "config" % "1.3.1"),
 
     initialCommands in console := """
 import com.grburst.libtt

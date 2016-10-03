@@ -23,7 +23,7 @@ import com.grburst.libtt.types._
 import com.grburst.libtt.parser.MyTischtennisParser
 
 // case class MyTischtennisBrowser(credentialStorage: (u: String, p: String)) { <- Use something like this to supply credentials
-case class MyTischtennisBrowser() {
+object MyTischtennisBrowser {
 
   private val parser = MyTischtennisParser()
   // val cache: Cache[HttpResponse] = LruCache()
