@@ -301,7 +301,8 @@ object MyTischtennisBrowser {
     pipeline(request)
   }
 
-  def terminate() = system.terminate()
+  // def terminate() = system.terminate()
+  def terminate() = system.shutdown()
 
   private def addCookies(implicit user: User): HttpRequest => HttpRequest = {
     req: HttpRequest =>
