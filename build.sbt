@@ -33,21 +33,31 @@ lazy val root = (project in file(".")).
     initialCommands in console := """
 import com.grburst.libtt
 import com.grburst.libtt._
+import com.grburst.libtt.types._
 import com.grburst.libtt.util.types._
 import com.grburst.libtt.parser.MyTischtennisParser
 import com.grburst.libtt.util.parsingHelper.StringHelper
 
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{ Try, Success, Failure }
 
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.{ Cookie, `Set-Cookie`, HttpCookie }
-import akka.http.scaladsl.model.{ FormData, HttpRequest, HttpResponse, Uri }
-import akka.http.scaladsl.coding.Gzip
 
-import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem
+import akka.http.scaladsl.client.RequestBuilding._
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.coding.Gzip
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.MediaTypes._
+import akka.http.scaladsl.model.MediaRanges.`*/*`
+import akka.http.scaladsl.model.Uri._
+import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.headers.HttpEncodings._
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.ActorMaterializer
+import akka.stream.ActorMaterializerSettings
+import com.typesafe.config.ConfigFactory
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.model.Element
