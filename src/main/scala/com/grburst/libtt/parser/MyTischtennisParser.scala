@@ -14,7 +14,6 @@ import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
 
-// TODO: Wrap extractions in Options since scraper throws execption if element is not found
 case class MyTischtennisParser() {
 
   def findGroupId(doc: HttpDoc): Option[Int] = {
@@ -29,7 +28,7 @@ case class MyTischtennisParser() {
     // further parse for .hideOwn[id] for id
     Try({
       val user = (doc >> texts("div.userDatas > :not(.leftSite)")).toList
-      User(0, user(0), user(1), Nil, Some(user(2)), None, Some(user(3)), Some(user(4)), None, user(5).toIntOption)
+      User(0, user(0), user(1), Map(), Some(user(2)), None, Some(user(3)), Some(user(4)), None, user(5).toIntOption)
     }).toOption
   }
 

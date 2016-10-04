@@ -7,7 +7,7 @@ case class User(
   id: Int,
   firstname: String,
   surname: String,
-  var cookies: List[HttpCookie] = Nil,
+  var cookies: Map[String, HttpCookie] = Map(),
   club: Option[String] = None,
   clubId: Option[Int] = None,
   organisation: Option[String] = None,

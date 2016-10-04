@@ -23,14 +23,13 @@ import akka.http.scaladsl.model.headers.HttpEncodings._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.ActorMaterializerSettings
+import akka.event.Logging
 
 import com.typesafe.config.ConfigFactory
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 
-// case class MyTischtennisBrowser(credentialStorage: (u: String, p: String)) { <- Use something like this to supply credentials
-// case class MyTischtennisBrowser(implicit val ec: ExecutionContext) {
-case class MyTischtennisBrowser() {
+case class MyTischtennisBrowser(private val username: String, private val pass: String)(implicit val ec: ExecutionContext) {
 
   private val parser = MyTischtennisParser()
 
@@ -42,6 +41,7 @@ case class MyTischtennisBrowser() {
 
   implicit val system = ActorSystem("libtt-actors", libttConf)
   implicit val materializer = ActorMaterializer()
+  val log = Logging.getLogger(system, this)
   // import system.dispatcher
 
   /**
@@ -193,6 +193,25 @@ case class MyTischtennisBrowser() {
     makeGetRequest(searchRankingUrl.toString) map (doc => playerParser(doc).getOrElse(Nil))
   }
 
+  def login(user: Option[User] = None): Future[User] = {
+    user match {
+      case Some(user) =>
+        doLogin() map (res => {
+          user.cookies = extractCookies(res)
+          res.discardEntityBytes()
+          user
+        })
+      case _ =>
+        doLogin() flatMap (res => {
+          val c = extractCookies(res)
+          res.discardEntityBytes()
+          initiateUser(User(0, "", "", cookies = c))
+        })
+    }
+  }
+
+  def terminate() = system.terminate()
+
   private def initMyMasterData(implicit user: User): Future[Option[User]] = {
     val userUrl = "https://www.mytischtennis.de/community/userMasterPagePrint"
 
@@ -217,8 +236,7 @@ case class MyTischtennisBrowser() {
   }
 
   private def initMyPlayerData(club: Option[Club])(implicit user: User): Future[Option[Player]] = {
-    (searchPlayer(user.firstname, user.surname, club.get.id, club.get.name, user.organisation.get)).map(l =>
-      Try(l.head).toOption)
+    (searchPlayer(user.firstname, user.surname, club.get.id, club.get.name, user.organisation.get)) map (l => Try(l.head).toOption)
   }
 
   private def userDataFusion(user: Option[User], club: Option[Club], player: Option[Player], leagueId: Option[Int]): User = {
@@ -227,7 +245,7 @@ case class MyTischtennisBrowser() {
       Try(player.get.id).getOrElse(0),
       Try(user.get.firstname).getOrElse(""),
       Try(user.get.surname).getOrElse(""),
-      Try(user.get.cookies).getOrElse(Nil),
+      Try(user.get.cookies).getOrElse(Map()),
       Try(club.get.name).toOption,
       Try(club.get.id).toOption,
       Try(user.get.organisation).getOrElse(None),
@@ -237,15 +255,16 @@ case class MyTischtennisBrowser() {
       Try(player.get.ttr).getOrElse(None),
       Try(player.get.vRank).getOrElse(None),
       Try(player.get.dRank).getOrElse(None))
+
   }
 
   // Run this once after first login and after every transfer period
   // Ask user to confirm if data are correct
-  def initiateUser(user: User): Future[User] = {
-    // Step 1: parse users master page  => Get firstname, surname, club, organisation, league, qttr
-    // Step 2: search my club           => Get clubId, clubName, organisation, orgaId
-    // Step 3: search player (self)     => Get id, vRank, dRank, fullName, club, clubId, ttr
-    // Step 4: search group info page   => Get leagueId
+  // Step 1: parse users master page  => Get firstname, surname, club, organisation, league, qttr
+  // Step 2: search my club           => Get clubId, clubName, organisation, orgaId
+  // Step 3: search player (self)     => Get id, vRank, dRank, fullName, club, clubId, ttr
+  // Step 4: search group info page   => Get leagueId
+  private def initiateUser(user: User): Future[User] = {
     for {
       prematureUser <- initMyMasterData(user)
       myClubData <- initMyClubData(prematureUser.get)
@@ -255,44 +274,22 @@ case class MyTischtennisBrowser() {
 
   }
 
-  def login(username: String, pass: String, user: Option[User] = None): Future[User] = {
-    user match {
-      case Some(user) =>
-        doLogin(u, p) map (res => {
-          user.cookies = extractCookies(res)
-          res.discardEntityBytes()
-          user
-        })
-      case _ =>
-        doLogin(u, p) flatMap (res => {
-          val c = extractCookies(res)
-          res.discardEntityBytes()
-          initiateUser(User(0, "", "", cookies = c))
-        })
-    }
-  }
-
-  private def doLogin(userName: String, pass: String): Future[HttpResponse] = {
+  private def doLogin(): Future[HttpResponse] = {
 
     val request = HttpRequest(
       method = HttpMethods.POST,
       uri = Uri("https://www.mytischtennis.de/community/login"),
-      entity = FormData(Map("userNameB" -> userName, "userPassWordB" -> pass)).toEntity)
+      entity = FormData(Map("userNameB" -> username, "userPassWordB" -> pass)).toEntity)
 
     Http().singleRequest(request)
   }
 
-  def terminate() = system.terminate()
-
-  private def addCookies(implicit user: User): HttpRequest => HttpRequest = {
-    req: HttpRequest =>
-      {
-        if (!user.cookies.isEmpty) req.addHeader(Cookie(cookies = user.cookies map (cookie => cookie.pair())))
-        req
-      }
+  private def addCookies(req: HttpRequest)(implicit user: User): HttpRequest = {
+    if (!user.cookies.isEmpty) req.addHeader(Cookie(cookies = (user.cookies.values map (cookie => cookie.pair)).toList))
+    else req
   }
 
-  private def extractCookies(resp: HttpResponse): List[HttpCookie] = resp.headers.collect { case `Set-Cookie`(cookie) => cookie }.toList
+  private def extractCookies(resp: HttpResponse): Map[String, HttpCookie] = resp.headers.collect { case `Set-Cookie`(cookie) => cookie.name -> cookie }.toMap
 
   private def extractAddCookies(resp: HttpResponse)(implicit user: User): HttpResponse = {
     user.cookies ++= extractCookies(resp)
@@ -307,27 +304,22 @@ case class MyTischtennisBrowser() {
   }
 
   private def makeRequest(request: HttpRequest, retry: Boolean = true)(implicit user: User): Future[HttpDoc] = {
+    val finalRequest = addCookies(request)
+      .addHeader(Accept(`text/html`, `application/xhtml+xml`, `application/xml` withQValue 0.9f, `*/*` withQValue 0.8))
+      .addHeader(`Accept-Language`(Language("de"), Language("en-US") withQValue 0.7f, Language("en") withQValue 0.3f))
+      .addHeader(`Accept-Encoding`(gzip))
+      .addHeader(`Content-Encoding`(gzip))
 
-    request ~> addCookies ~>
-      addHeader(Accept(`text/html`, `application/xhtml+xml`, `application/xml` withQValue 0.9f, `*/*` withQValue 0.8)) ~>
-      addHeader(`Accept-Language`(Language("de"), Language("en-US") withQValue 0.7f, Language("en") withQValue 0.3f)) ~>
-      addHeader(`Accept-Encoding`(gzip)) ~>
-      addHeader(`Content-Encoding`(gzip))
+    val response = Http().singleRequest(Gzip.encode(finalRequest)) map (res => Gzip.decode(res))
 
-    val response = Http().singleRequest(Gzip.encode(request)) map (res => Gzip.decode(res))
-    response map (resp => extractAddCookies(resp))
-    val res = response flatMap (resp => Unmarshal(resp).to[String]) map (str => JsoupBrowser().parseString(str))
+    val doc = response map (resp => extractAddCookies(resp)) flatMap (resp => Unmarshal(resp).to[String]) map (str => JsoupBrowser().parseString(str))
+    doc
 
-    // TODO: rewrite this ugly code
-    if (retry) {
-      res flatMap (hres =>
-        if (checkRelogin(hres)) {
-          doLogin(u, p) map (res => user.cookies = extractCookies(res))
-          makeRequest(request, false)
-        } else
-          res)
-    } else
-      res
+    // TODO: Relogin (below is pseudocode)
+    // if (checkRelogin(d) && retry) {
+    //   login(Some(user))
+    //   makeRequest(request, false)
+    // }
 
   }
 
