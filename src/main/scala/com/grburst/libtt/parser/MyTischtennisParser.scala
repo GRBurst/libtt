@@ -7,7 +7,7 @@ import com.grburst.libtt.util.parsingHelper.StringHelper
 
 import scala.util.Try
 
-import spray.http.Uri
+import akka.http.scaladsl.model.Uri
 
 import net.ruippeixotog.scalascraper.model.Element
 import net.ruippeixotog.scalascraper.dsl.DSL._
@@ -18,7 +18,7 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
 case class MyTischtennisParser() {
 
   def findGroupId(doc: net.ruippeixotog.scalascraper.model.Document): Option[Int] = {
-    Try(Uri(doc >> element("div.panel-body") >> attr("href")("a")).query.get("groupId").get.toInt).toOption
+    Try(Uri(doc >> element("div.panel-body") >> attr("href")("a")).query().get("groupId").get.toInt).toOption
   }
 
   def isLoginPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[Boolean] = {
@@ -29,7 +29,7 @@ case class MyTischtennisParser() {
     // further parse for .hideOwn[id] for id
     Try({
       val user = (doc >> texts("div.userDatas > :not(.leftSite)")).toList
-      User(0, user(0), user(1), Map(), Some(user(2)), None, Some(user(3)), Some(user(4)), None, user(5).toIntOption)
+      User(0, user(0), user(1), Nil, Some(user(2)), None, Some(user(3)), Some(user(4)), None, user(5).toIntOption)
     }).toOption
   }
 
@@ -37,8 +37,8 @@ case class MyTischtennisParser() {
     Try({
       val p = "(\\d+)".r
       val name = (doc >> text("h2")).split(" ")
-      val id = Uri(doc >> attr("href")("a.ttrIcon")).query.get("personId")
-      val userId = Try(Uri(doc >> attr("href")("a.infoIcon")).query.get("userid").get.toInt).toOption
+      val id = Uri(doc >> attr("href")("a.ttrIcon")).query().get("personId")
+      val userId = Try(Uri(doc >> attr("href")("a.infoIcon")).query().get("userid").get.toInt).toOption
       val ttr = p.findAllIn(doc >> text(".label-primary")).toArray
 
       ProfileInfo(id.get.toInt, name(0).trim, name(1).trim, ttr(0).toIntOption, ttr(1).toIntOption, userId)
@@ -54,7 +54,7 @@ case class MyTischtennisParser() {
         case List(d, n, c, t, b, s) => Try({
           val pId: Array[String] = (n >> attr("data-tooltipdata")("a")).split(";")
           val name: Array[String] = pId(2).split(" ")
-          val clubId = Try(Uri(c >> attr("href")("a")).query.get("clubid").get.toInt).toOption;
+          val clubId = Try(Uri(c >> attr("href")("a")).query().get("clubid").get.toInt).toOption;
 
           Player(pId(0).toInt, None, d.text.toIntOption, name(1).trim, name(0).trim, c.text, clubId, t.text.toIntOption)
         }).toOption
@@ -131,7 +131,7 @@ case class MyTischtennisParser() {
           val pId: Array[String] = (n >> attr("data-tooltipdata")("a")).split(";")
           val name: Array[String] = pId(2).split(" ")
           val vr: Rank = r.text.split("/")(0).trim.toIntOption
-          val clubId = Try(Uri(c >> attr("href")("a")).query.get("clubid").get.toInt).toOption;
+          val clubId = Try(Uri(c >> attr("href")("a")).query().get("clubid").get.toInt).toOption;
 
           Player(pId(0).toInt, vr, d.text.toIntOption, name(0).trim, name(1).trim, c.text, clubId, t.text.toIntOption)
         }).toOption

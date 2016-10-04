@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   name := "libtt",
   organization := "com.grburst",
-  version := "0.2.3-SNAPSHOT",
+  version := "0.3.0-SNAPSHOT",
   scalaVersion := "2.11.8")
 
 lazy val root = (project in file(".")).
@@ -26,10 +26,9 @@ lazy val root = (project in file(".")).
 
     libraryDependencies ++= Seq(
       "net.ruippeixotog" %% "scala-scraper" % "1.0.0",
-      "io.spray" %% "spray-caching" % "1.3.4",
-      "io.spray" %% "spray-client" % "1.3.4",
-      "com.typesafe.akka" %% "akka-actor" % "2.3.9",
-      "com.typesafe" % "config" % "1.2.1"),
+      "com.typesafe.akka" %% "akka-http-experimental" % "2.4.11",
+      "com.typesafe.akka" %% "akka-actor" % "2.4.11",
+      "com.typesafe" % "config" % "1.3.1"),
 
     initialCommands in console := """
 import com.grburst.libtt
@@ -42,11 +41,10 @@ import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
 import scala.util.{ Try, Success, Failure }
 
-import spray.client.pipelining._
-import spray.http.{ FormData, HttpCookie, HttpRequest, HttpResponse }
-import spray.http.Uri
-import spray.http.HttpHeaders.{ Cookie, `Set-Cookie` }
-import spray.httpx.encoding.Gzip
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.headers.{ Cookie, `Set-Cookie`, HttpCookie }
+import akka.http.scaladsl.model.{ FormData, HttpRequest, HttpResponse, Uri }
+import akka.http.scaladsl.coding.Gzip
 
 import com.typesafe.config.ConfigFactory
 import akka.actor.ActorSystem

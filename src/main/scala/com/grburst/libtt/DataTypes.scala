@@ -1,13 +1,13 @@
 package com.grburst.libtt.types
 
 import com.grburst.libtt.util.types._
-import spray.http.HttpCookie
+import akka.http.scaladsl.model.headers.HttpCookie
 
 case class User(
   id: Int,
   firstname: String,
   surname: String,
-  var cookies: Map[String, HttpCookie] = Map(),
+  var cookies: Seq[HttpCookie] = Nil,
   club: Option[String] = None,
   clubId: Option[Int] = None,
   organisation: Option[String] = None,
@@ -17,6 +17,8 @@ case class User(
   ttr: Option[Int] = None,
   vRank: Option[Int] = None,
   dRank: Option[Int] = None)
+
+// object User {}
 
 case class Club(
   id: Int,
