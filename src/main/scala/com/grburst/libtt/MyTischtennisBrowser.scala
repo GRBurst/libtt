@@ -1,17 +1,18 @@
 package com.grburst.libtt
 
-import scala.concurrent.Future
+import com.grburst.libtt.parser.MyTischtennisParser
+import com.grburst.libtt.types._
+import com.grburst.libtt.util.types._
+
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Try, Success, Failure }
 import scala.concurrent.Await
 import scala.concurrent.duration._
-
-// import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.client.RequestBuilding._
 import akka.http.scaladsl.Http
-// import akka.http.scaladsl.model.{ FormData, HttpRequest, HttpResponse, Uri }
-// import akka.http.scaladsl.model.headers.{ Cookie, `Set-Cookie`, HttpCookie, HttpCookiePair, Accept, `Accept-Encoding`, `Accept-Language` }
 import akka.http.scaladsl.coding.Gzip
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.MediaTypes._
@@ -27,23 +28,21 @@ import com.typesafe.config.ConfigFactory
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 
-import com.grburst.libtt.types._
-import com.grburst.libtt.parser.MyTischtennisParser
-
 // case class MyTischtennisBrowser(credentialStorage: (u: String, p: String)) { <- Use something like this to supply credentials
-object MyTischtennisBrowser {
+// case class MyTischtennisBrowser(implicit val ec: ExecutionContext) {
+case class MyTischtennisBrowser() {
 
-  type HttpDoc = net.ruippeixotog.scalascraper.model.Document
   private val parser = MyTischtennisParser()
 
-  // spray.can.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
+  // akka.http.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
+  // akka.http.???.max-redirects = 0
   private val libttConf = ConfigFactory.parseString("""
     akka.http.client.user-agent-header = "Mozilla/5.0 (X11; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0"
-    akka.http.host-connector.max-redirects = 0""")
+    """)
 
   implicit val system = ActorSystem("libtt-actors", libttConf)
   implicit val materializer = ActorMaterializer()
-  import system.dispatcher
+  // import system.dispatcher
 
   /**
    * Get user's data.
@@ -54,7 +53,7 @@ object MyTischtennisBrowser {
   }
 
   def getMyFriendsRanking(implicit user: User): Future[List[Player]] = {
-    searchCustomRanking(Query("showmyfriends" -> "1"))
+    searchCustomRanking(Map("showmyfriends" -> "1"))
   }
 
   //https://www.mytischtennis.de/community/ajax/_rankingList?showgroupid=[id]
@@ -118,7 +117,7 @@ object MyTischtennisBrowser {
   }
 
   def getClubRanking(club: Club)(implicit user: User): Future[List[Player]] = {
-    searchCustomRanking(Query("alleSpielberechtigen" -> "YES", "verband" -> "Alle",
+    searchCustomRanking(Map("alleSpielberechtigen" -> "YES", "verband" -> "Alle",
       "verein" -> club.name,
       "vereinId" -> (club.id.toString + "," + club.organisation)))
   }
@@ -140,7 +139,7 @@ object MyTischtennisBrowser {
   // firstName && lastname must contain 3+ chars each
   def searchPlayer(firstName: String, lastName: String, clubId: Int, clubName: String, organisation: String)(implicit user: User): Future[List[Player]] = {
     searchCustomRanking(
-      Query(
+      Map(
         "vorname" -> firstName, "nachname" -> lastName,
         "verein" -> clubName,
         "vereinId" -> (clubId.toString + "," + organisation)),
@@ -150,7 +149,7 @@ object MyTischtennisBrowser {
   // firstName && lastname must contain 3+ chars each
   def searchPlayer(firstName: String, lastName: String)(implicit user: User): Future[List[Player]] = {
     searchCustomRanking(
-      Query(
+      Map(
         "vorname" -> firstName, "nachname" -> lastName,
         "vereinIdPersonenSuche" -> "",
         "vereinPersonenSuche" -> "Verein+suchen"),
@@ -158,7 +157,7 @@ object MyTischtennisBrowser {
   }
 
   // TODO: Generate Formular for choices
-  def searchCustomRanking(userChoice: Query, playerParser: net.ruippeixotog.scalascraper.model.Document => Option[List[Player]] = parser.parseRanking)(implicit user: User): Future[List[Player]] = {
+  def searchCustomRanking(userChoice: Map[String, String], playerParser: net.ruippeixotog.scalascraper.model.Document => Option[List[Player]] = parser.parseRanking)(implicit user: User): Future[List[Player]] = {
     val searchRankingUrl = Uri("https://www.mytischtennis.de/community/ajax/_rankingList")
       .withQuery(Query(Map(
         "kontinent" -> "Europa",
@@ -189,7 +188,7 @@ object MyTischtennisBrowser {
         "showGroupId" -> "",
         "deutschePlusGleichgest2" -> "no",
         "ttrQuartalorAktuell2" -> "aktuell",
-        "showmyfriends" -> "0") ++ userChoice.toMap))
+        "showmyfriends" -> "0") ++ userChoice))
 
     makeGetRequest(searchRankingUrl.toString) map (doc => playerParser(doc).getOrElse(Nil))
   }
@@ -222,20 +221,7 @@ object MyTischtennisBrowser {
       Try(l.head).toOption)
   }
 
-  private def caseClassToMap(cc: Option[AnyRef]) = {
-    if (cc.isDefined) {
-      (Map[String, Any]() /: cc.get.getClass.getDeclaredFields) { (a, f) =>
-        f.setAccessible(true)
-        a + (f.getName -> f.get(cc.get))
-      }
-    } else
-      Map[String, Any]()
-  }
-
   private def userDataFusion(user: Option[User], club: Option[Club], player: Option[Player], leagueId: Option[Int]): User = {
-    // val params = caseClassToMap(user) ++
-    //   caseClassToMap(club) ++
-    //   caseClassToMap(Try(playerList.head).toOption)
 
     User(
       Try(player.get.id).getOrElse(0),
@@ -269,24 +255,24 @@ object MyTischtennisBrowser {
 
   }
 
-  def login(username: String, pass: String, user: Option[User]): Future[User] = {
+  def login(username: String, pass: String, user: Option[User] = None): Future[User] = {
     user match {
       case Some(user) =>
         doLogin(u, p) map (res => {
           user.cookies = extractCookies(res)
+          res.discardEntityBytes()
           user
         })
       case _ =>
-        doLogin(u, p) flatMap (res =>
-          initiateUser(User(0, "", "", cookies = extractCookies(res))))
+        doLogin(u, p) flatMap (res => {
+          val c = extractCookies(res)
+          res.discardEntityBytes()
+          initiateUser(User(0, "", "", cookies = c))
+        })
     }
   }
 
   private def doLogin(userName: String, pass: String): Future[HttpResponse] = {
-    // val pipeline: HttpRequest => Future[HttpResponse] = (sendReceive)
-    // val data = FormData(Map("userNameB" -> userName, "userPassWordB" -> pass))
-    // val request = Post("https://www.mytischtennis.de/community/login", data)
-    // pipeline(request)
 
     val request = HttpRequest(
       method = HttpMethods.POST,
@@ -296,75 +282,56 @@ object MyTischtennisBrowser {
     Http().singleRequest(request)
   }
 
-  // def terminate() = system.terminate()
-  def terminate() = system.shutdown()
+  def terminate() = system.terminate()
 
   private def addCookies(implicit user: User): HttpRequest => HttpRequest = {
     req: HttpRequest =>
       {
-        // if (user.cookies.isEmpty) req
-        // else req.addHeader(Cookie((user.cookies map (cookie => cookie.pair())): _*))
+        if (!user.cookies.isEmpty) req.addHeader(Cookie(cookies = user.cookies map (cookie => cookie.pair())))
         req
       }
   }
 
-  private def extractCookies(resp: HttpResponse): Seq[HttpCookie] = resp.headers.collect { case `Set-Cookie`(cookie) => cookie }
+  private def extractCookies(resp: HttpResponse): List[HttpCookie] = resp.headers.collect { case `Set-Cookie`(cookie) => cookie }.toList
 
-  private def extractAddCookies(implicit user: User): HttpResponse => HttpResponse = {
-    res: HttpResponse =>
-      {
-        user.cookies ++= (res.headers.collect { case `Set-Cookie`(cookie) => cookie })
-        res
-      }
+  private def extractAddCookies(resp: HttpResponse)(implicit user: User): HttpResponse = {
+    user.cookies ++= extractCookies(resp)
+    resp
   }
 
-  // private def checkRelogin(hres: HttpResponse)(implicit user: User): Boolean = {
-  //   parser.isLoginPage(JsoupBrowser().parseString(hres.entity.asString)) match {
-  //     case Some(b) if b => true
-  //     case _ => false
-  //   }
-  // }
+  private def checkRelogin(doc: HttpDoc)(implicit user: User): Boolean = {
+    parser.isLoginPage(doc) match {
+      case Some(b) if b => true
+      case _ => false
+    }
+  }
 
   private def makeRequest(request: HttpRequest, retry: Boolean = true)(implicit user: User): Future[HttpDoc] = {
 
     request ~> addCookies ~>
       addHeader(Accept(`text/html`, `application/xhtml+xml`, `application/xml` withQValue 0.9f, `*/*` withQValue 0.8)) ~>
       addHeader(`Accept-Language`(Language("de"), Language("en-US") withQValue 0.7f, Language("en") withQValue 0.3f)) ~>
-      addHeader(`Accept-Encoding`(gzip))
+      addHeader(`Accept-Encoding`(gzip)) ~>
+      addHeader(`Content-Encoding`(gzip))
 
-    // ~> addHeader(`Content-Encoding`(gzip))
-    //Gzip.encode(
-    val response = Http().singleRequest(request) map (res => Gzip.decode(res))
-    response map (resp => extractCookies(resp))
-    response flatMap (resp => Unmarshal(resp).to[String]) map (str => JsoupBrowser().parseString(str))
+    val response = Http().singleRequest(Gzip.encode(request)) map (res => Gzip.decode(res))
+    response map (resp => extractAddCookies(resp))
+    val res = response flatMap (resp => Unmarshal(resp).to[String]) map (str => JsoupBrowser().parseString(str))
 
-    // val pipeline: HttpRequest => Future[HttpResponse] = (addCookies
-    //   ~> addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-    //   ~> addHeader("Accept-Language", "de,en-US;q=0.7,en;q=0.3")
-    //   ~> addHeader("Accept-Encoding", "gzip")
-    //   ~> encode(Gzip)
-    //   ~> sendReceive
-    //   ~> decode(Gzip)
-    //   ~> extractAddCookies)
     // TODO: rewrite this ugly code
-    // val res = pipeline(request)
-    // if (retry) {
-    //   res flatMap (hres =>
-    //     if (checkRelogin(hres)) {
-    //       doLogin(u, p) map (res => user.cookies = extractCookies(res))
-    //       makeRequest(request, true)
-    //     } else
-    //       res)
-    // } else
-    //   res
-    //
+    if (retry) {
+      res flatMap (hres =>
+        if (checkRelogin(hres)) {
+          doLogin(u, p) map (res => user.cookies = extractCookies(res))
+          makeRequest(request, false)
+        } else
+          res)
+    } else
+      res
+
   }
 
   private def makeGetRequest(url: String)(implicit user: User): Future[HttpDoc] = makeRequest(Get(url)) //makeRequest(HttpRequest(method = HttpMethods.GET, uri = Uri(url)))
   private def makePostRequest(url: String, form: FormData)(implicit user: User): Future[HttpDoc] = makeRequest(Post(url, form.toEntity)) //makeRequest(HttpRequest(method = HttpMethods.POST, uri = Uri(url), entity = form.toEntity))
-
-  // def makeCachedRequest(url: String) = cache(url) {
-  //   makeGetRequest(url)
-  // }
 
 }

@@ -17,15 +17,15 @@ import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
 // TODO: Wrap extractions in Options since scraper throws execption if element is not found
 case class MyTischtennisParser() {
 
-  def findGroupId(doc: net.ruippeixotog.scalascraper.model.Document): Option[Int] = {
+  def findGroupId(doc: HttpDoc): Option[Int] = {
     Try(Uri(doc >> element("div.panel-body") >> attr("href")("a")).query().get("groupId").get.toInt).toOption
   }
 
-  def isLoginPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[Boolean] = {
+  def isLoginPage(doc: HttpDoc): Option[Boolean] = {
     Try((doc >> text("title")).contains("Login")).toOption
   }
 
-  def parseUserMasterPage(doc: net.ruippeixotog.scalascraper.model.Document): Option[User] = {
+  def parseUserMasterPage(doc: HttpDoc): Option[User] = {
     // further parse for .hideOwn[id] for id
     Try({
       val user = (doc >> texts("div.userDatas > :not(.leftSite)")).toList
@@ -33,7 +33,7 @@ case class MyTischtennisParser() {
     }).toOption
   }
 
-  def parsePlayerProfile(doc: net.ruippeixotog.scalascraper.model.Document): Option[ProfileInfo] = {
+  def parsePlayerProfile(doc: HttpDoc): Option[ProfileInfo] = {
     Try({
       val p = "(\\d+)".r
       val name = (doc >> text("h2")).split(" ")
@@ -45,7 +45,7 @@ case class MyTischtennisParser() {
     }).toOption
   }
 
-  def parseSearchPlayerList(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Player]] = {
+  def parseSearchPlayerList(doc: HttpDoc): Option[List[Player]] = {
 
     Try({
       val ttrTable = doc >> element(".table-striped") >> elementList("tr")
@@ -66,7 +66,7 @@ case class MyTischtennisParser() {
 
   }
 
-  def parseSearchClubList(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Club]] = {
+  def parseSearchClubList(doc: HttpDoc): Option[List[Club]] = {
 
     Try({
       val ttrTable = doc >> element("#ajaxclublist") >> elementList(".row")
@@ -83,7 +83,7 @@ case class MyTischtennisParser() {
     }).toOption
   }
 
-  def parseEvents(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Event]] = {
+  def parseEvents(doc: HttpDoc): Option[List[Event]] = {
 
     Try({
       val ttrTable = doc >> element("#tooltip-wrapper-ttr-table") >> element("tbody") >> elementList("tr")
@@ -100,7 +100,7 @@ case class MyTischtennisParser() {
     }).toOption
   }
 
-  def parseEventDetail(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[MyMatch]] = {
+  def parseEventDetail(doc: HttpDoc): Option[List[MyMatch]] = {
 
     def isTTSet(s: String) = if (s.length > 3) Some(s) else None
 
@@ -122,7 +122,7 @@ case class MyTischtennisParser() {
     }).toOption
   }
 
-  def parseRanking(doc: net.ruippeixotog.scalascraper.model.Document): Option[List[Player]] = {
+  def parseRanking(doc: HttpDoc): Option[List[Player]] = {
 
     Try({
       val ttrTable = doc >> element(".table-striped") >> elementList("tr")
