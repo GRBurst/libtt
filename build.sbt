@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   name := "libtt",
   organization := "com.grburst",
-  version := "0.3.0-SNAPSHOT",
+  version := "0.3.2-SNAPSHOT",
   scalaVersion := "2.11.8")
 
 lazy val root = (project in file(".")).

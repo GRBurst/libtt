@@ -8,7 +8,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Try, Success, Failure }
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
+// import scala.concurrent.ExecutionContext.Implicits.global
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.client.RequestBuilding._
@@ -29,8 +29,11 @@ import com.typesafe.config.ConfigFactory
 
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 
-case class MyTischtennisBrowser(private val username: String, private val pass: String)(implicit val ec: ExecutionContext) {
+// case class StateManager(user: User, credentials: Credientials)
 
+// case class MyTischtennisBrowser(private val username: String, private val pass: String)(implicit val ec: ExecutionContext) {
+// object MyTischtennisBrowser {
+case class MyTischtennisBrowser(implicit val ec: ExecutionContext) {
   private val parser = MyTischtennisParser()
 
   // akka.http.client.user-agent-header = "Dalvik/2.1.0 (Linux; U; Android 6.0.1;)"
@@ -193,16 +196,16 @@ case class MyTischtennisBrowser(private val username: String, private val pass: 
     makeGetRequest(searchRankingUrl.toString) map (doc => playerParser(doc).getOrElse(Nil))
   }
 
-  def login(user: Option[User] = None): Future[User] = {
+  def login(username: String, pass: String, user: Option[User] = None): Future[User] = {
     user match {
       case Some(user) =>
-        doLogin() map (res => {
+        doLogin(username, pass) map (res => {
           user.cookies = extractCookies(res)
           res.discardEntityBytes()
           user
         })
       case _ =>
-        doLogin() flatMap (res => {
+        doLogin(username, pass) flatMap (res => {
           val c = extractCookies(res)
           res.discardEntityBytes()
           initiateUser(User(0, "", "", cookies = c))
@@ -274,7 +277,7 @@ case class MyTischtennisBrowser(private val username: String, private val pass: 
 
   }
 
-  private def doLogin(): Future[HttpResponse] = {
+  private def doLogin(username: String, pass: String): Future[HttpResponse] = {
 
     val request = HttpRequest(
       method = HttpMethods.POST,
